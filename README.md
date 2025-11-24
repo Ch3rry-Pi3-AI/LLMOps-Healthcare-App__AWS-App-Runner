@@ -175,4 +175,3 @@ The frontend and backend will read `OPENAI_API_KEY` from this `.env` file during
 | Python Backend Skeleton          | `api/`, `index.py`, `requirements.txt`       |    ✅   |
 | Environment Variables Configured | `.env` with `OPENAI_API_KEY`                 |    ✅   |
 | Git Branch Initialised           | `00_project_setup` branch created            |    ✅   |
-| AWS Deployment (Placeholder)     | To be configured in later AWS-focused stages |   🔜   |
