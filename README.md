@@ -106,12 +106,12 @@ At the project root:
 
 * Right-click → **New Folder → `api`**
 
-### 7.2 Create `api/index.py`
+### 7.2 Create `api/server`
 
-Inside `api/`, create a file called `index.py`:
+Inside `api/`, create a file called `server`:
 
 ```python
-# api/index.py
+# api/server
 
 from fastapi import FastAPI
 
@@ -172,7 +172,7 @@ The frontend and backend will read `OPENAI_API_KEY` from this `.env` file during
 | -------------------------------- | -------------------------------------------- | :----: |
 | Next.js Frontend                 | TypeScript + Tailwind scaffold               |    ✅   |
 | Frontend Dependencies Installed  | Markdown, Clerk, SSE, date picker            |    ✅   |
-| Python Backend Skeleton          | `api/`, `index.py`, `requirements.txt`       |    ✅   |
+| Python Backend Skeleton          | `api/`, `server`, `requirements.txt`       |    ✅   |
 | Environment Variables Configured | `.env` with `OPENAI_API_KEY`                 |    ✅   |
 | Git Branch Initialised           | `00_project_setup` branch created            |    ✅   |
 | AWS Deployment (Placeholder)     | To be configured in later AWS-focused stages |   🔜   |
