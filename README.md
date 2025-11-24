@@ -1,67 +1,84 @@
-# 🧩 LLMOps – Healthcare App
+# 🩺 LLMOps – Healthcare App
 
-### ⚙️✨ Application Configuration Branch
+### 🧾 Consultation Form Branch
 
-This branch configures the **global application setup** for the LLMOps Healthcare App.
-It introduces the two core Next.js Pages Router files that define how the entire frontend behaves, loads styles, and integrates authentication.
+This branch introduces the **first fully interactive clinical interface** for the LLMOps Healthcare App.
+It adds a subscription-protected consultation form that allows healthcare professionals to input patient details, submit clinical notes, and receive a **real-time AI-generated summary** streamed from the backend.
 
-With this stage complete, the application now has a **fully configured global shell**, ready to host the healthcare consultation form and all UI components that follow.
+This is the first major UI feature in the application and marks the transition from setup/configuration to real clinical functionality.
 
 ## 🧩 Overview
 
-This branch updates the files inside the `pages/` directory that control:
+This branch adds a new page, `product.tsx`, which includes:
 
-* 🌍 **Global layout and rendering**
-* 🔐 **Application-wide Clerk authentication**
-* 🎨 **CSS and style imports**
-* 🧱 **Base HTML document structure**
-* 🏗️ **Metadata and page setup**
+* A fully interactive **consultation form**
+* Date selection via **React DatePicker**
+* Form validation
+* Authenticated API requests via **Clerk JWTs**
+* Live **SSE streaming** from the backend
+* Markdown-rendered summaries (GFM + soft line breaks)
+* Subscription gating using `<Protect />`
+* A premium-plan marketing fallback for non-subscribed users
+* A top-right authenticated user menu via `<UserButton />`
 
-These foundational elements must be in place before building the interactive healthcare UI.
+The result is a polished, professional clinical workflow suitable for real-world healthcare use.
 
 ## 🛠️ What We Implemented
 
-### ✓ 🔐 Global Clerk Authentication (`_app.tsx`)
+### ✓ Consultation Form Component
 
-The entire app is now wrapped with `ClerkProvider`, enabling:
+Includes fields for:
 
-* Secure authentication
-* Access to user session data
-* Protected API calls
+* 👤 Patient name
+* 📅 Visit date
+* 📝 Consultation notes
 
-All pages automatically inherit this authentication context.
+The form handles submission, validation, and passes data to the `/api` FastAPI endpoint.
 
-### ✓ 🎨 Global Stylesheet Configuration
+### ✓ Real-Time Streaming (SSE)
 
-`_app.tsx` now loads:
+The form uses **fetchEventSource** to stream the model’s response token-by-token and display it live in the UI.
 
-* The project’s global Tailwind stylesheet
-* The `react-datepicker` stylesheet used for selecting clinical visit dates
+### ✓ Markdown Rendering
 
-This ensures consistent theming and clean UI components across all views.
+AI responses are rendered cleanly with:
 
-### ✓ 📄 Custom Document Structure (`_document.tsx`)
+* `react-markdown`
+* `remark-gfm`
+* `remark-breaks`
 
-We defined the application’s base HTML structure, including:
+Ensuring readable, clinical-grade output.
 
-* App title: **Healthcare Consultation Assistant**
-* SEO-friendly description
-* A consistent HTML layout for all pages
+### ✓ Subscription Protection
 
-This file runs server-side and sets the foundation for every rendered page.
+The entire form is wrapped in:
+
+```tsx
+<Protect plan="premium_subscription">
+```
+
+Unauthenticated or unsubscribed users see a premium plan page with a pricing table.
+
+### ✓ UI Enhancements
+
+* Gradient backgrounds
+* Smooth transitions
+* Dark mode compatibility
+* Professional layout suitable for medical professionals
 
 ## 📁 Updated Project Structure
 
-Only the **new files** in this branch are annotated.
+Only the new file in this branch is annotated.
 
 ```
 llmops-healthcare-app/
 ├── api/
 │   └── server.py
 ├── pages/
-│   ├── _app.tsx        # NEW: Global App wrapper (ClerkProvider + global styles)
-│   ├── _document.tsx   # NEW: Custom HTML document structure + metadata
-│   └── index.tsx
+│   ├── _app.tsx
+│   ├── _document.tsx
+│   ├── index.tsx
+│   └── product.tsx     # NEW: Consultation Form + subscription-protected workflow
 ├── public/
 ├── styles/
 ├── package.json
@@ -69,14 +86,13 @@ llmops-healthcare-app/
 └── next.config.js
 ```
 
-## 🩻 Why This Configuration Matters
+## 💡 Why This Matters
 
-This setup ensures:
+With this branch complete, the application now includes:
 
-* 🔐 **Authentication works everywhere**
-* 🎨 **Global CSS and component styles are consistently applied**
-* 🧠 **Metadata and document structure remain uniform**
-* 📡 **The frontend is prepared for SSE streaming and Markdown output**
-* 🧩 **The next UI components can rely on a stable global foundation**
+* A **real clinical UI**
+* Streaming interaction with your AI backend
+* Full authentication + subscription logic
+* A polished experience for medical professionals
 
-With this branch complete, the frontend is structurally ready for real functionality.
+This completes the core “LLM-powered consultation summary” functionality end-to-end.
