@@ -1,96 +1,106 @@
-# 🐳 LLMOps – Healthcare App
+# 🩺 LLMOps – Healthcare App
 
-### 🛠️ Docker Installation Branch
+### ⚙️ API Setup Branch
 
-This branch focuses on installing and verifying **Docker Desktop**, which you will use later to build and containerise the Healthcare App before pushing it to **Amazon ECR**.
+This branch introduces the **core backend API** for the LLMOps Healthcare App.
+It transforms the simple backend skeleton from the previous stage into a **fully operational FastAPI service** integrated with Clerk authentication, OpenAI streaming, and optional static asset serving.
 
-By the end of this stage, you will have:
+With this stage complete, the application now includes a secure, production-ready backend route for generating structured clinical summaries.
 
-* Docker Desktop fully installed
-* WSL2 configured (Windows)
-* The ability to run containers locally
-* Validation that Docker Engine works correctly
+## 🧩 Overview
 
-## ⚡ DOCKER SETUP
+This branch adds the first working Python endpoint inside the `api/` directory.
+The updated backend:
 
-### 🧩 Overview
+* Accepts patient visit details
+* Authenticates incoming requests with Clerk
+* Sends structured prompts to OpenAI
+* Streams model output using **SSE (Server-Sent Events)** for real-time UI updates
+* Exposes a `/health` check endpoint for AWS App Runner
 
-Docker is the tool that lets us package the entire Healthcare App — frontend + backend + dependencies — into a single container image.
-This container will later be uploaded to **Amazon ECR** and then deployed with **AWS App Runner**.
+This backend now forms the clinical reasoning core of the system and supports all future healthcare logic.
 
-In this stage, you will:
+## 🧬 What We Implemented
 
-* Install Docker Desktop
-* Ensure WSL2 is enabled (Windows)
-* Run a test container to confirm everything works
+### ✓ FastAPI Application
 
-## 🐋 Step 1: Install Docker Desktop
-
-1. Go to **docker.com/products/docker-desktop**
-
-2. Download Docker Desktop for your system:
-
-   * **Mac** → Choose Apple Silicon or Intel
-   * **Windows** → Windows 10/11 supported (Docker will auto-check prerequisites)
-
-3. Run the installer
-
-4. **Windows users:**
-
-   * Docker will offer to install **WSL2**
-   * Accept all prompts
-   * Allow it to configure the Linux subsystem
-
-5. Once installation completes, start **Docker Desktop**
-
-6. A system restart may be required
-
-After restarting, ensure Docker Desktop is running in the background (the whale icon in the system tray or menu bar).
-
-## 🧾 Step 2: Verify Docker Works
-
-Open:
-
-* Terminal (Mac)
-* PowerShell (Windows)
-
-Run:
-
-```bash
-docker --version
-```
-
-You should see output like:
+A `FastAPI()` instance was created inside:
 
 ```
-Docker version 26.x.x
+api/server.py
 ```
 
-Now test Docker Engine by pulling and running the official test container:
+### ✓ Clerk Authentication
 
-```bash
-docker run hello-world
+The `/api/consultation` route is secured with `fastapi-clerk-auth`, validating Clerk-issued JWTs.
+
+### ✓ Pydantic Data Model
+
+The `Visit` model ensures structured and validated clinical inputs:
+
+* patient name
+* visit date
+* raw consultation notes
+
+### ✓ Prompt Construction
+
+The system and user prompts were implemented to generate three required medical sections:
+
+* a doctor-facing visit summary
+* next steps
+* a patient-friendly email
+
+### ✓ OpenAI Integration
+
+The backend streams responses from the lightweight `"gpt-5-nano"` model.
+
+### ✓ SSE Streaming
+
+The API now streams incremental model output using `text/event-stream`, enabling the UI to render the summary as tokens arrive.
+
+### ✓ Health Check Endpoint
+
+AWS-compatible health endpoint implemented at:
+
+```
+GET /health
 ```
 
-Expected output begins with:
+### ✓ Static File Support
+
+If a `static/` directory exists, the backend can serve the exported frontend directly from the same container.
+
+## 📁 Updated Project Structure
+
+Only the updated backend file is annotated.
 
 ```
-Hello from Docker!
+llmops-healthcare-app/
+├── api/
+│   └── server.py        # NEW: FastAPI consultation-summary endpoint with Clerk auth + SSE
+├── pages/
+├── public/
+├── styles/
+├── package.json
+├── requirements.txt
+├── tsconfig.json
+└── next.config.js
 ```
 
-This confirms:
+## 🩻 API Behaviour Summary
 
-* Docker Engine is running
-* Images can be pulled
-* Containers can start
-* Networking is functioning correctly
+The `/api/consultation` endpoint now:
 
-## 🧪 Completion Checklist
+1. Validates requests using Clerk
+2. Accepts the `Visit` payload
+3. Builds a structured clinical prompt
+4. Streams model output using SSE
+5. Returns, in real time:
 
-| Component                 | Description                            | Status |
-| ------------------------- | -------------------------------------- | :----: |
-| Docker Desktop Installed  | Mac or Windows installation complete   |    ✅   |
-| WSL2 Configured (Windows) | WSL2 enabled & linked to Docker Engine |    ✅   |
-| Version Verified          | `docker --version` shows running build |    ✅   |
-| Test Container Run        | `hello-world` prints expected message  |    ✅   |
+   * doctor summary
+   * next steps
+   * patient-friendly email
 
+The `/health` endpoint provides a simple status report used by AWS App Runner and monitoring systems.
+
+This completes the backend API setup.
