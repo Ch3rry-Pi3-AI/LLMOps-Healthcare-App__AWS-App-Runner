@@ -1,178 +1,180 @@
-# 🚑 LLMOps – Healthcare App
+# ☁️ LLMOps – Healthcare App
 
-### 🧠 Project Setup Branch
+### 🏗️ AWS Setup Branch
 
-This branch establishes the **foundational setup** for the **LLMOps Healthcare App**, including environment preparation, project scaffolding, and the backend skeleton.
+This branch establishes the **AWS infrastructure foundation** for the LLMOps Healthcare App.
+By the end of this stage, you will have:
 
-Once this stage is complete, you’ll have:
+* A fully secured AWS account
+* An IAM user for daily development
+* A dedicated permission group
+* Budget alerts to prevent accidental overspending
+* A clear understanding of the AWS services used in later deployment stages
 
-* A working **Next.js + Tailwind** frontend
-* A **Python (FastAPI) backend skeleton** ready for local development and later deployment to AWS (ECR + App Runner in later branches)
-* A project-level `.env` file with your `OPENAI_API_KEY` configured
+This branch prepares the environment you’ll need before pushing your Docker image to **Amazon ECR** and deploying the backend using **AWS App Runner** in the next stages.
 
-## ⚡ PROJECT SETUP
+## 🌐 Understanding the AWS Services We Will Use
+
+### 🚀 AWS App Runner
+
+A fully managed container hosting service. You give it a Docker image → it handles HTTPS, autoscaling, load balancing, and deployment.
+
+### 🗄️ Amazon ECR
+
+A private container registry where your Docker images will be stored.
+Think of it as **GitHub for containers**.
+
+### 🔐 AWS IAM
+
+Controls access to AWS resources.
+We will create a secure, limited-permissions IAM user for all development.
+
+### 📊 CloudWatch
+
+AWS's monitoring and logging service.
+When your application runs on App Runner, CloudWatch will collect logs to help you debug issues.
+
+## ⚡ AWS SETUP
 
 ### 🧩 Overview
 
-This guide walks you through the full base setup for the **Healthcare App**.
+This guide walks you through the complete AWS preparation required for later deployment.
 By the end, you will have:
 
-* A Next.js frontend (TS + Tailwind)
-* All required npm packages (Markdown rendering, Clerk auth, streaming helpers, date picker)
-* A root-level `api/` folder for your Python backend
-* A `requirements.txt` for server-side Python code
-* A `.env` file containing your `OPENAI_API_KEY` for local development
+* A secured AWS account
+* Root MFA enabled
+* Billing alerts configured
+* A dedicated IAM user (`aiengineer`)
+* A permission group with App Runner, ECR, IAM, and CloudWatch access
 
-## 🧱 Step 1: Install Node.js
+These steps must be completed before you can containerise and deploy your Healthcare App.
 
-Install Node.js from [https://nodejs.org/en/download](https://nodejs.org/en/download) and verify:
+## 🪄 Step 1: Create Your AWS Account
 
-```bash
-node --version
-npm --version
-```
+1. Go to **aws.amazon.com**
+2. Click **Create an AWS Account**
+3. Enter your email and password
+4. Choose **Personal** account type
+5. Enter payment details
+6. Verify phone number via SMS
+7. Select **Basic Support – Free**
 
-## 🖥️ Step 2: Create the Next.js Frontend
+You now have the AWS **root account** — the “god mode” account.
+We will lock this down immediately.
 
-```bash
-npx create-next-app@15.5.6 llmops-healthcare-app --typescript
-```
+## 🔒 Step 2: Secure the Root Account
 
-Prompts:
+1. Log in to AWS Console
+2. Click your account name → **Security credentials**
+3. Under **Multi-factor authentication (MFA)**:
 
-* Linter: **ESLint**
-* Tailwind: **y**
-* Use `src/`: **n**
-* App Router: **n**
-* Turbopack: **n**
-* Import alias: **n**
+   * Click **Assign MFA device**
+   * Select **Authenticator app**
+   * Scan the QR code with Google Authenticator / Authy
+   * Enter two consecutive codes
+   * Click **Add MFA**
 
-## 🧭 Step 3: Open Your Project
+Your root account is now protected.
 
-Open the project in Cursor (or your preferred editor) → you’ll see the standard Next.js **Pages Router** layout.
+## 💸 Step 3: Set Up Budget Alerts (Critical)
 
-## 🧹 Step 4: Remove the Default `pages/api` Folder
+1. Search for **Billing** in AWS Console
+2. Go to **Budgets**
+3. Click **Create budget**
+4. Choose **Use a template (simplified)**
+5. Pick **Monthly cost budget**
 
-Right-click `pages/api` → **Delete**.
-The backend for this project will live in a separate root-level `api/` folder (Python FastAPI), not Next.js API routes.
+Create three budgets:
 
-## 🎨 Step 5: Tailwind CSS Basics
+### Budget 1 – Early Warning ($1)
 
-Tailwind is already configured by the Next.js setup.
-You can immediately start using utility classes like:
+* Budget name: `early-warning`
+* Amount: **1**
+* Add your email address
+* Click **Create budget**
 
-```jsx
-<div className="min-h-screen bg-slate-100 text-slate-900">
-  <h1 className="text-3xl font-bold">LLMOps Healthcare App</h1>
-</div>
-```
+### Budget 2 – Caution ($5)
 
-## 📦 Step 6: Install Additional Frontend Dependencies
+Same steps, but:
 
-From the project root:
+* Budget name: `caution-budget`
+* Amount: **5**
 
-```bash
-npm install react-markdown remark-gfm remark-breaks
-npm install @tailwindcss/typography
-npm install @clerk/nextjs
-npm install @microsoft/fetch-event-source
+### Budget 3 – Stop Alert ($10)
 
-npm install react-datepicker
-npm install --save-dev @types/react-datepicker
-```
+Same steps, but:
 
-**Packages explained:**
+* Budget name: `stop-budget`
+* Amount: **10**
 
-* **react-markdown / remark-gfm / remark-breaks**
-  For medical responses rendered as clean Markdown.
+AWS will send alerts when:
 
-* **@tailwindcss/typography**
-  Beautiful, readable medical documentation layouts.
+* Actual cost hits 85%
+* Actual cost hits 100%
+* Forecasted cost is expected to hit 100%
 
-* **@clerk/nextjs**
-  Authentication (sign-in, user profiles, subscription tiers).
+If you see a $10 alert → **stop everything and review what is running!**
 
-* **@microsoft/fetch-event-source**
-  SSE streaming for real-time model output.
+## 👤 Step 4: Create an IAM User
 
-* **react-datepicker** + TypeScript types
-  Used for date selection in patient visits / appointment flows.
+Never use the root account for development.
+We create a safer, restricted IAM user.
 
-## 🧬 Step 7: Add the Python Backend Skeleton
+1. Search **IAM**
+2. Click **Users** → **Create user**
+3. Username: `aiengineer`
+4. Enable: **Provide user access to AWS Management Console**
+5. Select **I want to create an IAM user**
+6. Set a **custom password**
+7. Disable: **Require password reset**
+8. Click **Next**
 
-### 7.1 Create `api/` Folder
+## 👥 Step 5: Create a Permissions Group
 
-At the project root:
+1. On the permissions page → **Add user to group**
 
-* Right-click → **New Folder → `api`**
+2. Click **Create group**
 
-### 7.2 Create `api/index.py`
+3. Group name: `BroadAIEngineerAccess`
 
-Inside `api/`, create a file called `index.py`:
+4. Attach these policies:
 
-```python
-# api/index.py
+   * `AWSAppRunnerFullAccess`
+   * `AmazonEC2ContainerRegistryFullAccess`
+   * `CloudWatchLogsFullAccess`
+   * `IAMUserChangePassword`
+   * `IAMFullAccess` (required for later steps and often missed)
 
-from fastapi import FastAPI
+5. Click **Create user group**
 
-app = FastAPI()
+6. Select the group (ensure it’s ticked)
 
+7. Click **Next** → **Create user**
 
-@app.get("/health")
-def health_check():
-    return {"status": "ok"}
-```
+Finally:
 
-This is a simple placeholder for your FastAPI backend.
-Later branches will extend this with actual clinical AI endpoints.
+* Click **Download .csv**
+* Store it securely — it contains the login URL for your IAM user
 
-### 7.3 Create `requirements.txt`
+## 🔑 Step 6: Sign In as the IAM User
 
-At the project root, create `requirements.txt`:
+1. Log out of your root account
+2. Open the login URL from the CSV (format: `https://123456789012.signin.aws.amazon.com/console`)
+3. Log in as:
 
-```txt
-fastapi
-uvicorn
-openai
-fastapi-clerk-auth
-pydantic
-```
+   * Username: `aiengineer`
+   * Password: (your chosen password)
 
-**Package purposes:**
-
-* **fastapi** – Backend framework for clinical AI endpoints
-* **uvicorn** – Local ASGI server
-* **openai** – Model calls
-* **fastapi-clerk-auth** – Auth guard for protected clinical endpoints
-* **pydantic** – Request/response validation
-
-## 🔑 Step 8: Configure Your `.env` File (OpenAI API Key)
-
-At the project root, create a file named `.env`:
-
-```env
-OPENAI_API_KEY=sk-XXXXXXXXXXXX
-```
-
-Notes:
-
-* Replace `sk-XXXXXXXXXXXX` with your real OpenAI API key.
-* Do **not** commit this file to Git. Ensure `.gitignore` includes `.env`:
-
-```gitignore
-.env
-```
-
-The frontend and backend will read `OPENAI_API_KEY` from this `.env` file during local development.
-(Deployment to AWS ECR + App Runner will configure environment variables via AWS in later branches.)
+If you see **aiengineer @ Account-ID** in the top-right corner →
+Your AWS development identity is fully configured.
 
 ## ✅ Completion Checklist
 
-| Component                        | Description                                  | Status |
-| -------------------------------- | -------------------------------------------- | :----: |
-| Next.js Frontend                 | TypeScript + Tailwind scaffold               |    ✅   |
-| Frontend Dependencies Installed  | Markdown, Clerk, SSE, date picker            |    ✅   |
-| Python Backend Skeleton          | `api/`, `index.py`, `requirements.txt`       |    ✅   |
-| Environment Variables Configured | `.env` with `OPENAI_API_KEY`                 |    ✅   |
-| Git Branch Initialised           | `00_project_setup` branch created            |    ✅   |
-| AWS Deployment (Placeholder)     | To be configured in later AWS-focused stages |   🔜   |
+| Component                   | Description                                    | Status |
+| --------------------------- | ---------------------------------------------- | :----: |
+| Root Account Secured        | MFA enabled                                    |    ✅   |
+| AWS Budgets Created         | $1, $5, and $10 budgets set                    |    ✅   |
+| IAM User Created            | `aiengineer` account configured                |    ✅   |
+| IAM Group Created           | `BroadAIEngineerAccess` with required policies |    ✅   |
+| CSV Credentials Saved       | IAM login URL + details downloaded             |    ✅   |
+| Signed In as IAM User       | Ready for AWS development                      |    ✅   |
