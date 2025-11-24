@@ -1,106 +1,82 @@
-# 🩺 LLMOps – Healthcare App
+# 🧩 LLMOps – Healthcare App
 
-### ⚙️ API Setup Branch
+### ⚙️✨ Application Configuration Branch
 
-This branch introduces the **core backend API** for the LLMOps Healthcare App.
-It transforms the simple backend skeleton from the previous stage into a **fully operational FastAPI service** integrated with Clerk authentication, OpenAI streaming, and optional static asset serving.
+This branch configures the **global application setup** for the LLMOps Healthcare App.
+It introduces the two core Next.js Pages Router files that define how the entire frontend behaves, loads styles, and integrates authentication.
 
-With this stage complete, the application now includes a secure, production-ready backend route for generating structured clinical summaries.
+With this stage complete, the application now has a **fully configured global shell**, ready to host the healthcare consultation form and all UI components that follow.
 
 ## 🧩 Overview
 
-This branch adds the first working Python endpoint inside the `api/` directory.
-The updated backend:
+This branch updates the files inside the `pages/` directory that control:
 
-* Accepts patient visit details
-* Authenticates incoming requests with Clerk
-* Sends structured prompts to OpenAI
-* Streams model output using **SSE (Server-Sent Events)** for real-time UI updates
-* Exposes a `/health` check endpoint for AWS App Runner
+* 🌍 **Global layout and rendering**
+* 🔐 **Application-wide Clerk authentication**
+* 🎨 **CSS and style imports**
+* 🧱 **Base HTML document structure**
+* 🏗️ **Metadata and page setup**
 
-This backend now forms the clinical reasoning core of the system and supports all future healthcare logic.
+These foundational elements must be in place before building the interactive healthcare UI.
 
-## 🧬 What We Implemented
+## 🛠️ What We Implemented
 
-### ✓ FastAPI Application
+### ✓ 🔐 Global Clerk Authentication (`_app.tsx`)
 
-A `FastAPI()` instance was created inside:
+The entire app is now wrapped with `ClerkProvider`, enabling:
 
-```
-api/server.py
-```
+* Secure authentication
+* Access to user session data
+* Protected API calls
 
-### ✓ Clerk Authentication
+All pages automatically inherit this authentication context.
 
-The `/api/consultation` route is secured with `fastapi-clerk-auth`, validating Clerk-issued JWTs.
+### ✓ 🎨 Global Stylesheet Configuration
 
-### ✓ Pydantic Data Model
+`_app.tsx` now loads:
 
-The `Visit` model ensures structured and validated clinical inputs:
+* The project’s global Tailwind stylesheet
+* The `react-datepicker` stylesheet used for selecting clinical visit dates
 
-* patient name
-* visit date
-* raw consultation notes
+This ensures consistent theming and clean UI components across all views.
 
-### ✓ Prompt Construction
+### ✓ 📄 Custom Document Structure (`_document.tsx`)
 
-The system and user prompts were implemented to generate three required medical sections:
+We defined the application’s base HTML structure, including:
 
-* a doctor-facing visit summary
-* next steps
-* a patient-friendly email
+* App title: **Healthcare Consultation Assistant**
+* SEO-friendly description
+* A consistent HTML layout for all pages
 
-### ✓ OpenAI Integration
-
-The backend streams responses from the lightweight `"gpt-5-nano"` model.
-
-### ✓ SSE Streaming
-
-The API now streams incremental model output using `text/event-stream`, enabling the UI to render the summary as tokens arrive.
-
-### ✓ Health Check Endpoint
-
-AWS-compatible health endpoint implemented at:
-
-```
-GET /health
-```
-
-### ✓ Static File Support
-
-If a `static/` directory exists, the backend can serve the exported frontend directly from the same container.
+This file runs server-side and sets the foundation for every rendered page.
 
 ## 📁 Updated Project Structure
 
-Only the updated backend file is annotated.
+Only the **new files** in this branch are annotated.
 
 ```
 llmops-healthcare-app/
 ├── api/
-│   └── server.py        # NEW: FastAPI consultation-summary endpoint with Clerk auth + SSE
+│   └── server.py
 ├── pages/
+│   ├── _app.tsx        # NEW: Global App wrapper (ClerkProvider + global styles)
+│   ├── _document.tsx   # NEW: Custom HTML document structure + metadata
+│   └── index.tsx
 ├── public/
 ├── styles/
 ├── package.json
-├── requirements.txt
 ├── tsconfig.json
 └── next.config.js
 ```
 
-## 🩻 API Behaviour Summary
+## 🩻 Why This Configuration Matters
 
-The `/api/consultation` endpoint now:
+This setup ensures:
 
-1. Validates requests using Clerk
-2. Accepts the `Visit` payload
-3. Builds a structured clinical prompt
-4. Streams model output using SSE
-5. Returns, in real time:
+* 🔐 **Authentication works everywhere**
+* 🎨 **Global CSS and component styles are consistently applied**
+* 🧠 **Metadata and document structure remain uniform**
+* 📡 **The frontend is prepared for SSE streaming and Markdown output**
+* 🧩 **The next UI components can rely on a stable global foundation**
 
-   * doctor summary
-   * next steps
-   * patient-friendly email
-
-The `/health` endpoint provides a simple status report used by AWS App Runner and monitoring systems.
-
-This completes the backend API setup.
+With this branch complete, the frontend is structurally ready for real functionality.
