@@ -1,180 +1,119 @@
-# ☁️ LLMOps – Healthcare App
+# 🩺 LLMOps – Healthcare App
 
-### 🏗️ AWS Setup Branch
+### ⚙️ API Setup Branch
 
-This branch establishes the **AWS infrastructure foundation** for the LLMOps Healthcare App.
-By the end of this stage, you will have:
+This branch introduces the **core backend API** for the LLMOps Healthcare App.
+It transforms the simple backend skeleton from the previous stage into a **fully operational FastAPI service** integrated with Clerk authentication, OpenAI streaming, and optional static asset serving.
 
-* A fully secured AWS account
-* An IAM user for daily development
-* A dedicated permission group
-* Budget alerts to prevent accidental overspending
-* A clear understanding of the AWS services used in later deployment stages
+With this stage complete, the application now includes a secure, production-ready backend route for generating structured clinical summaries.
 
-This branch prepares the environment you’ll need before pushing your Docker image to **Amazon ECR** and deploying the backend using **AWS App Runner** in the next stages.
+## 🧩 Overview
 
-## 🌐 Understanding the AWS Services We Will Use
+This branch adds the first working Python endpoint inside the `api/` directory.
+The updated backend:
 
-### 🚀 AWS App Runner
+* Accepts patient visit details
+* Authenticates incoming requests with Clerk
+* Sends structured prompts to OpenAI
+* Streams model output using **SSE (Server-Sent Events)** for real-time UI updates
+* Exposes a `/health` check endpoint for AWS App Runner
 
-A fully managed container hosting service. You give it a Docker image → it handles HTTPS, autoscaling, load balancing, and deployment.
+This backend now forms the clinical reasoning core of the system and supports all future healthcare logic.
 
-### 🗄️ Amazon ECR
+## 🧬 What We Implemented
 
-A private container registry where your Docker images will be stored.
-Think of it as **GitHub for containers**.
+### ✓ FastAPI Application
 
-### 🔐 AWS IAM
+A `FastAPI()` instance was created inside:
 
-Controls access to AWS resources.
-We will create a secure, limited-permissions IAM user for all development.
+```
+api/server.py
+```
 
-### 📊 CloudWatch
+### ✓ Clerk Authentication
 
-AWS's monitoring and logging service.
-When your application runs on App Runner, CloudWatch will collect logs to help you debug issues.
+The `/api/consultation` route is secured with `fastapi-clerk-auth`, validating Clerk-issued JWTs.
 
-## ⚡ AWS SETUP
+### ✓ Pydantic Data Model
 
-### 🧩 Overview
+The `Visit` model ensures structured and validated clinical inputs:
 
-This guide walks you through the complete AWS preparation required for later deployment.
-By the end, you will have:
+* patient name
+* visit date
+* raw consultation notes
 
-* A secured AWS account
-* Root MFA enabled
-* Billing alerts configured
-* A dedicated IAM user (`aiengineer`)
-* A permission group with App Runner, ECR, IAM, and CloudWatch access
+### ✓ Prompt Construction
 
-These steps must be completed before you can containerise and deploy your Healthcare App.
+The system and user prompts were implemented to generate three required medical sections:
 
-## 🪄 Step 1: Create Your AWS Account
+* a doctor-facing visit summary
+* next steps
+* a patient-friendly email
 
-1. Go to **aws.amazon.com**
-2. Click **Create an AWS Account**
-3. Enter your email and password
-4. Choose **Personal** account type
-5. Enter payment details
-6. Verify phone number via SMS
-7. Select **Basic Support – Free**
+### ✓ OpenAI Integration
 
-You now have the AWS **root account** — the “god mode” account.
-We will lock this down immediately.
+The backend streams responses from the lightweight `"gpt-5-nano"` model.
 
-## 🔒 Step 2: Secure the Root Account
+### ✓ SSE Streaming
 
-1. Log in to AWS Console
-2. Click your account name → **Security credentials**
-3. Under **Multi-factor authentication (MFA)**:
+The API now streams incremental model output using `text/event-stream`, enabling the UI to render the summary as tokens arrive.
 
-   * Click **Assign MFA device**
-   * Select **Authenticator app**
-   * Scan the QR code with Google Authenticator / Authy
-   * Enter two consecutive codes
-   * Click **Add MFA**
+### ✓ Health Check Endpoint
 
-Your root account is now protected.
+AWS-compatible health endpoint implemented at:
 
-## 💸 Step 3: Set Up Budget Alerts (Critical)
+```
+GET /health
+```
 
-1. Search for **Billing** in AWS Console
-2. Go to **Budgets**
-3. Click **Create budget**
-4. Choose **Use a template (simplified)**
-5. Pick **Monthly cost budget**
+### ✓ Static File Support
 
-Create three budgets:
+If a `static/` directory exists, the backend can serve the exported frontend directly from the same container.
 
-### Budget 1 – Early Warning ($1)
+## 🔑 Required `.env` Updates (AWS Integration)
 
-* Budget name: `early-warning`
-* Amount: **1**
-* Add your email address
-* Click **Create budget**
+At this stage, users **must add two AWS configuration variables** to their project-level `.env` file.
+These will be used in later branches when building and deploying the container to AWS:
 
-### Budget 2 – Caution ($5)
+```
+# Add AWS configuration (use your chosen region)
+DEFAULT_AWS_REGION=us-east-1
 
-Same steps, but:
+# Replace with your real AWS account ID
+AWS_ACCOUNT_ID=123456789012
+```
 
-* Budget name: `caution-budget`
-* Amount: **5**
+Make sure `.env` is included in your `.gitignore` to avoid committing credentials.
 
-### Budget 3 – Stop Alert ($10)
+## 📁 Updated Project Structure
 
-Same steps, but:
+Only the updated backend file is annotated.
 
-* Budget name: `stop-budget`
-* Amount: **10**
+```
+llmops-healthcare-app/
+├── api/
+│   └── server.py        # NEW: FastAPI consultation-summary endpoint with Clerk auth + SSE
+├── pages/
+├── public/
+├── styles/
+├── package.json
+├── requirements.txt
+├── tsconfig.json
+└── next.config.js
+```
 
-AWS will send alerts when:
+## 🩻 API Behaviour Summary
 
-* Actual cost hits 85%
-* Actual cost hits 100%
-* Forecasted cost is expected to hit 100%
+The `/api/consultation` endpoint now:
 
-If you see a $10 alert → **stop everything and review what is running!**
+1. Validates requests using Clerk
+2. Accepts the `Visit` payload
+3. Builds a structured clinical prompt
+4. Streams model output using SSE
+5. Returns, in real time:
 
-## 👤 Step 4: Create an IAM User
+   * doctor summary
+   * next steps
+   * patient-friendly email
 
-Never use the root account for development.
-We create a safer, restricted IAM user.
-
-1. Search **IAM**
-2. Click **Users** → **Create user**
-3. Username: `aiengineer`
-4. Enable: **Provide user access to AWS Management Console**
-5. Select **I want to create an IAM user**
-6. Set a **custom password**
-7. Disable: **Require password reset**
-8. Click **Next**
-
-## 👥 Step 5: Create a Permissions Group
-
-1. On the permissions page → **Add user to group**
-
-2. Click **Create group**
-
-3. Group name: `BroadAIEngineerAccess`
-
-4. Attach these policies:
-
-   * `AWSAppRunnerFullAccess`
-   * `AmazonEC2ContainerRegistryFullAccess`
-   * `CloudWatchLogsFullAccess`
-   * `IAMUserChangePassword`
-   * `IAMFullAccess` (required for later steps and often missed)
-
-5. Click **Create user group**
-
-6. Select the group (ensure it’s ticked)
-
-7. Click **Next** → **Create user**
-
-Finally:
-
-* Click **Download .csv**
-* Store it securely — it contains the login URL for your IAM user
-
-## 🔑 Step 6: Sign In as the IAM User
-
-1. Log out of your root account
-2. Open the login URL from the CSV (format: `https://123456789012.signin.aws.amazon.com/console`)
-3. Log in as:
-
-   * Username: `aiengineer`
-   * Password: (your chosen password)
-
-If you see **aiengineer @ Account-ID** in the top-right corner →
-Your AWS development identity is fully configured.
-
-## ✅ Completion Checklist
-
-| Component                   | Description                                    | Status |
-| --------------------------- | ---------------------------------------------- | :----: |
-| Root Account Secured        | MFA enabled                                    |    ✅   |
-| AWS Budgets Created         | $1, $5, and $10 budgets set                    |    ✅   |
-| IAM User Created            | `aiengineer` account configured                |    ✅   |
-| IAM Group Created           | `BroadAIEngineerAccess` with required policies |    ✅   |
-| CSV Credentials Saved       | IAM login URL + details downloaded             |    ✅   |
-| Signed In as IAM User       | Ready for AWS development                      |    ✅   |
+The `/health` endpoint provides a simple status report used by AWS App Runner and monitoring systems.
