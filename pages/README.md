@@ -1,18 +1,15 @@
 # 📄 Pages – LLMOps Healthcare App
 
-The `pages/` directory contains the **core Next.js Pages Router files** that configure the global behaviour, layout, and routing of the LLMOps Healthcare App.
+The `pages/` directory contains the **core Next.js Pages Router files** that define the global behaviour, layout, routing, and user-facing interfaces of the LLMOps Healthcare App.
 
-This folder now includes both the **global configuration files** and the first **interactive clinical page**, which together form the structural and functional foundation of the application.
+This folder now includes:
 
-These files define:
+* 🌍 **Global configuration files** for layout and authentication
+* 🎨 **App-level styling and document structure**
+* 🏥 **The main consultation workflow** (`product.tsx`)
+* ⭐ **The application landing page** (`index.tsx`)
 
-* 🌍 **Global providers** (Clerk authentication wrapper)
-* 🎨 **Global CSS and layout configuration**
-* 🧠 **App-wide metadata** (title, description)
-* 🩺 **Consultation form UI** (`product.tsx`)
-* 🏠 The default homepage placeholder (`index.tsx`) generated during project setup
-
-As the application evolves, additional clinical and administrative pages will be introduced in later branches.
+Together, these files form the foundational UI and routing structure of the healthcare platform.
 
 ## 📁 File Overview
 
@@ -20,45 +17,53 @@ As the application evolves, additional clinical and administrative pages will be
 pages/
 ├── _app.tsx        # Global app wrapper (ClerkProvider + global styles)
 ├── _document.tsx   # Custom HTML document structure + metadata
-├── index.tsx       # Default Next.js homepage (auto-generated placeholder)
-└── product.tsx     # NEW: Consultation Form + subscription-protected clinical workflow
+├── index.tsx       # NEW: Landing page for MediNotes Pro
+└── product.tsx     # Consultation Form + subscription-protected clinical workflow
 ```
 
 ### `_app.tsx`
 
-Wraps the entire application in **ClerkProvider**, loading authentication context and global styles such as Tailwind and the DatePicker stylesheet.
+Wraps the entire application with **ClerkProvider**, enabling authenticated access across all routes.
+Also loads global styles including Tailwind CSS and the React DatePicker stylesheet used in clinical workflows.
 
 ### `_document.tsx`
 
-Defines the global HTML structure and metadata applied to all pages.
-Runs only on the server and ensures consistent document-level layout.
+Defines the **base HTML structure**, metadata, and `<Head>` configuration for every page.
+Executed only on the server, ensuring the entire application renders consistently.
 
 ### `index.tsx`
 
-The placeholder landing page created automatically by `create-next-app`.
-This will be replaced by a dedicated landing experience in a future branch.
+The **public marketing and landing page** for MediNotes Pro.
+It includes:
+
+* 🔐 Adaptive navigation (Sign In / Go to App)
+* 🌈 Gradient hero section
+* 🧩 Feature highlights
+* 💬 Clear calls-to-action
+* 🛡️ Trust indicators (HIPAA, security, professionalism)
+
+This is the entry point for both new and returning users.
 
 ### `product.tsx`
 
-**Newly added in this branch**, this is the main clinical UI used by healthcare professionals.
-It provides:
+The primary **clinical consultation interface**, offering:
 
-* 🧍 Patient name input
-* 📅 Visit date selection
-* 📝 Consultation notes textarea
-* 🔐 Subscription-gated access via `<Protect />`
-* 📡 Real-time AI summary streaming using SSE
-* 🧾 Markdown-rendered output of the consultation summary
+* 🧍 Patient name entry
+* 📅 Visit date picker
+* 📝 Consultation notes input
+* 📡 Real-time AI summary generation (SSE streaming)
+* 🧾 Markdown-rendered output
+* 🔐 Subscription-gated access using Clerk’s `<Protect />`
 
-This file represents the first fully functional user-facing component of the Healthcare App.
+This is the first fully functional, user-facing workflow within the Healthcare App.
 
 ## 🚀 Purpose of This Folder
 
 The `pages/` directory governs:
 
-* How the entire app is **initialised**
-* Which global providers and styles are applied across all routes
-* The layout and metadata of all rendered pages
-* The structure and behaviour of each UI route, including the new consultation workflow
+* How the app is **initialised and structured**
+* How global providers, layouts, and metadata are applied
+* How navigation and routing behave across authenticated and unauthenticated states
+* All user-facing pages, from the landing experience to clinical tools
 
-Together, these files provide a consistent, secure, and extensible platform for all future healthcare features.
+This folder provides the main UI framework upon which the rest of the Healthcare App is built.
