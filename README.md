@@ -1,98 +1,64 @@
-# 🩺 LLMOps – Healthcare App
+# ⚙️ Next.js Configuration Update — LLMOps Healthcare App
 
-### 🧾 Consultation Form Branch
+### 🎯 Purpose of This Branch
 
-This branch introduces the **first fully interactive clinical interface** for the LLMOps Healthcare App.
-It adds a subscription-protected consultation form that allows healthcare professionals to input patient details, submit clinical notes, and receive a **real-time AI-generated summary** streamed from the backend.
+This branch introduces a small but essential update to the **Next.js configuration** to ensure the Healthcare App builds and deploys correctly in a **static + serverless hybrid environment** on Vercel.
 
-This is the first major UI feature in the application and marks the transition from setup/configuration to real clinical functionality.
+The change enables:
 
-## 🧩 Overview
+* Static export of all frontend pages
+* Compatibility with Python serverless functions located in `/api`
+* Correct handling of images without Next.js optimisation
 
-This branch adds a new page, `product.tsx`, which includes:
+These adjustments are required before we proceed to the next stage: **integrating Clerk authentication and subscription billing**.
 
-* A fully interactive **consultation form**
-* Date selection via **React DatePicker**
-* Form validation
-* Authenticated API requests via **Clerk JWTs**
-* Live **SSE streaming** from the backend
-* Markdown-rendered summaries (GFM + soft line breaks)
-* Subscription gating using `<Protect />`
-* A premium-plan marketing fallback for non-subscribed users
-* A top-right authenticated user menu via `<UserButton />`
 
-The result is a polished, professional clinical workflow suitable for real-world healthcare use.
+# 🧩 What Was Added
 
-## 🛠️ What We Implemented
+A new file was created:
 
-### ✓ Consultation Form Component
-
-Includes fields for:
-
-* 👤 Patient name
-* 📅 Visit date
-* 📝 Consultation notes
-
-The form handles submission, validation, and passes data to the `/api` FastAPI endpoint.
-
-### ✓ Real-Time Streaming (SSE)
-
-The form uses **fetchEventSource** to stream the model’s response token-by-token and display it live in the UI.
-
-### ✓ Markdown Rendering
-
-AI responses are rendered cleanly with:
-
-* `react-markdown`
-* `remark-gfm`
-* `remark-breaks`
-
-Ensuring readable, clinical-grade output.
-
-### ✓ Subscription Protection
-
-The entire form is wrapped in:
-
-```tsx
-<Protect plan="premium_subscription">
+```
+next.config.ts
 ```
 
-Unauthenticated or unsubscribed users see a premium plan page with a pricing table.
+This file configures Next.js to:
 
-### ✓ UI Enhancements
+* Export static HTML/JS (`output: 'export'`)
+* Disable image optimisation (`images.unoptimized: true`)
 
-* Gradient backgrounds
-* Smooth transitions
-* Dark mode compatibility
-* Professional layout suitable for medical professionals
+Both are necessary because the backend runs through Vercel’s Python serverless functions, not through Next.js’ Node runtime.
 
-## 📁 Updated Project Structure
+# 📄 Updated Project Structure
 
-Only the new file in this branch is annotated.
+Only the new file is annotated.
 
 ```
 llmops-healthcare-app/
 ├── api/
-│   └── server.py
+├── img/
+│   └── app/
 ├── pages/
-│   ├── _app.tsx
-│   ├── _document.tsx
-│   ├── index.tsx
-│   └── product.tsx     # NEW: Consultation Form + subscription-protected workflow
 ├── public/
 ├── styles/
 ├── package.json
-├── tsconfig.json
-└── next.config.js
+├── requirements.txt
+└── next.config.ts       # NEW: Configures static export + unoptimized images
 ```
 
-## 💡 Why This Matters
+# 🛠️ next.config.ts — Summary of Behaviour
 
-With this branch complete, the application now includes:
+This branch configures the application to:
 
-* A **real clinical UI**
-* Streaming interaction with your AI backend
-* Full authentication + subscription logic
-* A polished experience for medical professionals
+* Build correctly using Vercel static export
+* Serve images without Next.js’ optimisation server
+* Avoid SSR for pages, which is incompatible with the Python backend
+* Maintain predictable and efficient deployment behaviour
 
-This completes the core “LLM-powered consultation summary” functionality end-to-end.
+# 🚀 Completion Checklist
+
+| Component               | Description                                       | Status |
+| ----------------------- | ------------------------------------------------- | :----: |
+| Next.js Config Added    | `next.config.ts` created                          |    ✅   |
+| Static Export Enabled   | `output: 'export'` configured                     |    ✅   |
+| Image Optimisation Off  | Required for export mode                          |    ✅   |
+| Project Ready for Clerk | Safe to proceed to authentication + billing setup |    ✅   |
