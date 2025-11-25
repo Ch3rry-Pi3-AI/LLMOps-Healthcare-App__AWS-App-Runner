@@ -1,202 +1,168 @@
-# 🐳 LLMOps – Healthcare App
+# 🚀 LLMOps – Healthcare App
 
-### 🧪 Local Docker Testing Branch
+### 🐳 Deploy to AWS ECR (Elastic Container Registry) Branch
 
-This branch focuses on **containerising** the Healthcare App and **testing it locally** using Docker.
-The goal is to verify that the combined **Next.js frontend + FastAPI backend** works correctly inside a single container before pushing images to **Amazon ECR** and deploying with **AWS App Runner** in later stages.
+This branch prepares your application for **deployment to AWS** by pushing your Docker container to **Amazon ECR**, the secure container registry used by AWS App Runner, ECS, and other AWS services.
 
-With this stage complete, you will be able to:
+Once this stage is complete, you will have:
 
-* Build a production-grade Docker image
-* Run the container locally on port `8000`
-* Serve the static Next.js frontend from FastAPI
-* Exercise the full consultation workflow end-to-end in Docker
+* A private ECR repository named `consultation-app`
+* AWS CLI configured locally with correct permissions
+* Your Docker image tagged and pushed to ECR
+* A verified image ready for deployment in the next branch (AWS App Runner)
 
 ## 🧩 Overview
 
-This branch introduces:
+Amazon ECR acts as the **official storage location** for your container image.
+AWS App Runner will later pull this image directly from ECR to deploy your healthcare application into production.
 
-* A **multi-stage Dockerfile** that:
+To complete this stage, you will:
 
-  * Builds the Next.js frontend as a static export
-  * Packages the FastAPI backend (`api/server.py`)
-  * Serves everything from a Python 3.12 slim image
+* Create the ECR repository
+* Configure AWS CLI using a secure IAM user
+* Authenticate Docker to ECR
+* Build your container for AWS
+* Push your tagged image to ECR
 
-* A `.dockerignore` to keep the image lean
+Everything here uses the environment variables already saved in your `.env`.
 
-* A local workflow for:
 
-  * Loading environment variables
-  * Building the Docker image
-  * Running and testing the app at `http://localhost:8000`
+
+## 🧱 Step 1 – Create the ECR Repository
+
+ECR (Elastic Container Registry) is where we will store our Docker image.
+
+1. Open AWS Console → search for **ECR**
+2. Click **Get started** or **Create repository**
+3. Ensure you are in the **correct AWS region**
+4. Configure the repository:
+
+   * Visibility: **Private**
+   * Repository name: `consultation-app`
+     *(must match exactly, including hyphen!)*
+   * Leave all other settings at default
+5. Click **Create repository**
+6. Confirm that your new repository appears in the list
 
 <div align="center">
-  <img src="img/app/notes_generation.gif" width="100%" alt="Consultation Notes Generation Demo">
+  <img src="img/aws_ecr/repo_created.png" width="100%" alt="ECR Repository Created">
 </div>
 
-## 🧱 Step 1 – Create the Dockerfile
 
-Create a file named `Dockerfile` in the **project root**:
 
-```dockerfile
-# Stage 1: Build the Next.js static files
-FROM node:22-alpine AS frontend-builder
+## 🔐 Step 2 – Set Up AWS CLI
 
-WORKDIR /app
+To push your Docker image to ECR, we need to configure AWS CLI using **IAM access keys**.
 
-# Copy package files first (for better caching)
-COPY package*.json ./
-RUN npm ci
+### Create Access Keys
 
-# Copy all frontend files
-COPY . .
+1. Open AWS Console → search **IAM**
+2. Click **Users**
+3. Select your user: `aiengineer`
+4. Go to the **Security credentials** tab
+5. Under **Access keys**, click **Create access key**
+6. Choose:
 
-# Build argument for Clerk public key
-ARG NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
-ENV NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=$NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+   * **Command Line Interface (CLI)**
+7. Tick the confirmation box → **Next**
+8. Description: `Docker push access`
+9. Click **Create access key**
+10. *Copy or download both values*:
 
-# Build the Next.js app (creates 'out' directory with static files)
-RUN npm run build
+    * Access key ID
+    * Secret access key
 
-# Stage 2: Create the final Python container
-FROM python:3.12-slim
+These keys will be used once during configuration.
 
-WORKDIR /app
+### Configure AWS CLI
 
-# Install Python dependencies
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+Install AWS CLI if needed:
 
-# Copy the FastAPI server
-COPY api/server.py .
+* Mac: `brew install awscli`
+* Windows: Download from [https://aws.amazon.com/cli/](https://aws.amazon.com/cli/)
 
-# Copy the Next.js static export from builder stage
-COPY --from=frontend-builder /app/out ./static
+Then configure:
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"
-
-# Expose port 8000 (FastAPI will serve everything)
-EXPOSE 8000
-
-# Start the FastAPI server
-CMD ["uvicorn", "server:app", "--host", "0.0.0.0", "--port", "8000"]
+```bash
+aws configure
 ```
 
-This produces a single container that:
+Enter:
 
-* Hosts the **static Next.js frontend** from `/app/static`
-* Serves the **FastAPI API** from `server.py` on port `8000`
-* Exposes `/health` for health checks
+* AWS Access Key ID
+* AWS Secret Access Key
+* Default region:
+  Choose the same as in your `.env`
+  (e.g. `eu-west-1`, `us-east-1`, etc.)
+* Output format: `json`
 
-## 🧹 Step 2 – Create `.dockerignore`
+Your AWS CLI is now linked to your IAM user.
 
-Create `.dockerignore` in the project root:
 
-```text
-node_modules
-.next
-.env
-.env.local
-.git
-.gitignore
-README.md
-.DS_Store
-*.log
-.vercel
-dist
-build
-```
 
-## 🧪 Step 3 – Load Environment Variables
+## 📦 Step 3 – Push Your Docker Image to ECR
 
-Ensure `.env` contains:
-
-```env
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_...
-CLERK_SECRET_KEY=sk_...
-CLERK_JWKS_URL=https://...
-OPENAI_API_KEY=sk-proj-...
-DEFAULT_AWS_REGION=us-east-1
-AWS_ACCOUNT_ID=123456789012
-```
+1. Return to ECR → open the `consultation-app` repository
+2. Click **View push commands** for guidance
+3. Use the commands below with your `.env` values already loaded
 
 ### Mac / Linux
 
 ```bash
-export $(cat .env | grep -v '^#' | xargs)
-```
+# 1. Authenticate Docker to ECR
+aws ecr get-login-password --region $DEFAULT_AWS_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$DEFAULT_AWS_REGION.amazonaws.com
 
-### Windows PowerShell
-
-```powershell
-Get-Content .env | ForEach-Object {
-    if ($_ -match '^(.+?)=(.+)$') {
-        [System.Environment]::SetEnvironmentVariable($matches[1], $matches[2])
-    }
-}
-```
-
-## 🧱 Step 4 – Build the Docker Image
-
-### Mac / Linux
-
-```bash
+# 2. Build for Linux/AMD64 (IMPORTANT for Apple Silicon)
 docker build \
+  --platform linux/amd64 \
   --build-arg NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY="$NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY" \
   -t consultation-app .
+
+# 3. Tag the image
+docker tag consultation-app:latest $AWS_ACCOUNT_ID.dkr.ecr.$DEFAULT_AWS_REGION.amazonaws.com/consultation-app:latest
+
+# 4. Push the image
+docker push $AWS_ACCOUNT_ID.dkr.ecr.$DEFAULT_AWS_REGION.amazonaws.com/consultation-app:latest
 ```
 
 ### Windows PowerShell
 
 ```powershell
+# 1. Authenticate Docker to ECR
+aws ecr get-login-password --region $env:DEFAULT_AWS_REGION | docker login --username AWS --password-stdin "$env:AWS_ACCOUNT_ID.dkr.ecr.$env:DEFAULT_AWS_REGION.amazonaws.com"
+
+# 2. Build for Linux/AMD64
 docker build `
+  --platform linux/amd64 `
   --build-arg NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY="$env:NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY" `
   -t consultation-app .
+
+# 3. Tag the image
+docker tag consultation-app:latest "$env:AWS_ACCOUNT_ID.dkr.ecr.$env:DEFAULT_AWS_REGION.amazonaws.com/consultation-app:latest"
+
+# 4. Push the image
+docker push "$env:AWS_ACCOUNT_ID.dkr.ecr.$env:DEFAULT_AWS_REGION.amazonaws.com/consultation-app:latest"
 ```
 
-## 🏃 Step 5 – Run the Container Locally
+### ⏳ Push Time
 
-### Option A – Env vars manually
+The push usually takes **2–5 minutes** depending on connection speed.
 
-```powershell
-docker run -p 8000:8000 `
-  -e CLERK_SECRET_KEY="$env:CLERK_SECRET_KEY" `
-  -e CLERK_JWKS_URL="$env:CLERK_JWKS_URL" `
-  -e OPENAI_API_KEY="$env:OPENAI_API_KEY" `
-  consultation-app
-```
 
-### Option B – Use `.env` file
 
-```powershell
-docker run -p 8000:8000 --env-file .env consultation-app
-```
+## ✅ Checkpoint
 
-## 🧪 Step 6 – Test the Application
+After pushing, your ECR console should show your image:
 
-1. Open:
-   `http://localhost:8000`
-2. Sign in via Clerk
-3. Submit a consultation
-4. Confirm:
+<div align="center">
+  <img src="img/aws_ecr/image_pushed.png" width="100%" alt="Docker Image Pushed to ECR">
+</div>
 
-   * Markdown renders correctly
-   * Sections appear cleanly
-   * Streaming works smoothly
+You should see:
 
-Stop the container with **Ctrl + C**.
+* Repository: `consultation-app`
+* Tag: `latest`
+* Image size
+* Pushed timestamp
 
-## ✅ Completion Checklist
-
-| Component              | Description                                 | Status |
-| ---------------------- | ------------------------------------------- | :----: |
-| Dockerfile Created     | Multi-stage Node + Python image             |    ✅   |
-| `.dockerignore` Added  | Unnecessary files excluded                  |    ✅   |
-| Env Vars Loaded        | Clerk, OpenAI, AWS vars available to Docker |    ✅   |
-| Image Built            | `consultation-app` built successfully       |    ✅   |
-| Container Running      | Available at `localhost:8000`               |    ✅   |
-| End-to-End Flow Tested | Consultation workflow verified in Docker    |    ✅   |
-
-If you'd like, we can move on to the **ECR setup branch** next.
+This confirms your Docker image is now stored in AWS and ready for deployment via App Runner in the next stage.
