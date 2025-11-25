@@ -1,179 +1,202 @@
-# 🔐 LLMOps – Healthcare App
+# 🐳 LLMOps – Healthcare App
 
-### 🧾 Authentication & Subscription Setup Branch
+### 🧪 Local Docker Testing Branch
 
-This branch adds **full Clerk authentication** and **subscription-based access control**, transforming the Healthcare App into a secure, production-ready SaaS platform.
-Users can now:
+This branch focuses on **containerising** the Healthcare App and **testing it locally** using Docker.
+The goal is to verify that the combined **Next.js frontend + FastAPI backend** works correctly inside a single container before pushing images to **Amazon ECR** and deploying with **AWS App Runner** in later stages.
 
-* Sign in using modern authentication providers
-* Obtain secure Clerk-issued JWTs
-* Access plan-gated clinical features
-* Subscribe to premium plans
-* Manage billing & subscription settings directly via Clerk
+With this stage complete, you will be able to:
 
-This is the foundation that enables your AI-powered healthcare application to serve real users safely and professionally.
+* Build a production-grade Docker image
+* Run the container locally on port `8000`
+* Serve the static Next.js frontend from FastAPI
+* Exercise the full consultation workflow end-to-end in Docker
 
 ## 🧩 Overview
 
-This combined stage sets up:
+This branch introduces:
 
-### 🔐 1. User Authentication
+* A **multi-stage Dockerfile** that:
 
-* Email, Google, GitHub (and optionally Apple) sign-in
-* JWT issuance by Clerk
-* Backend verification using Clerk **JWKS**
-* Secure environment variable configuration
+  * Builds the Next.js frontend as a static export
+  * Packages the FastAPI backend (`api/server.py`)
+  * Serves everything from a Python 3.12 slim image
 
-### 💳 2. Subscription & Billing
+* A `.dockerignore` to keep the image lean
 
-* A premium plan (`premium_subscription`)
-* Subscription purchasing via Clerk Billing
-* Automatic access control using:
+* A local workflow for:
 
-```tsx
-<Protect plan="premium_subscription">
+  * Loading environment variables
+  * Building the Docker image
+  * Running and testing the app at `http://localhost:8000`
+
+<div align="center">
+  <img src="img/app/notes_generation.gif" width="100%" alt="Consultation Notes Generation Demo">
+</div>
+
+## 🧱 Step 1 – Create the Dockerfile
+
+Create a file named `Dockerfile` in the **project root**:
+
+```dockerfile
+# Stage 1: Build the Next.js static files
+FROM node:22-alpine AS frontend-builder
+
+WORKDIR /app
+
+# Copy package files first (for better caching)
+COPY package*.json ./
+RUN npm ci
+
+# Copy all frontend files
+COPY . .
+
+# Build argument for Clerk public key
+ARG NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+ENV NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=$NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+
+# Build the Next.js app (creates 'out' directory with static files)
+RUN npm run build
+
+# Stage 2: Create the final Python container
+FROM python:3.12-slim
+
+WORKDIR /app
+
+# Install Python dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy the FastAPI server
+COPY api/server.py .
+
+# Copy the Next.js static export from builder stage
+COPY --from=frontend-builder /app/out ./static
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"
+
+# Expose port 8000 (FastAPI will serve everything)
+EXPOSE 8000
+
+# Start the FastAPI server
+CMD ["uvicorn", "server:app", "--host", "0.0.0.0", "--port", "8000"]
 ```
 
-* Subscription management through `<UserButton />`
+This produces a single container that:
 
-Once complete, only authenticated and subscribed users will access premium clinical functionality.
+* Hosts the **static Next.js frontend** from `/app/static`
+* Serves the **FastAPI API** from `server.py` on port `8000`
+* Exposes `/health` for health checks
 
-## 🧑‍💻 Authentication Setup
+## 🧹 Step 2 – Create `.dockerignore`
 
-### Step 1: Create a Clerk Account
+Create `.dockerignore` in the project root:
 
-1. Go to **clerk.com**
-2. Sign up / log in
-3. Create a new **Application**
+```text
+node_modules
+.next
+.env
+.env.local
+.git
+.gitignore
+README.md
+.DS_Store
+*.log
+.vercel
+dist
+build
+```
 
-### Step 2: Configure Application Sign-In
+## 🧪 Step 3 – Load Environment Variables
 
-Enable:
-
-* Email
-* Google
-* GitHub
-* Apple (optional)
-
-These providers are immediately available through Clerk’s hosted UI components.
-
-### Step 3: Add Authentication Environment Variables
-
-Instead of `.env.local`, all variables now go into **`.env`** (project root):
+Ensure `.env` contains:
 
 ```env
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=your_publishable_key_here
-CLERK_SECRET_KEY=your_secret_key_here
-CLERK_JWKS_URL=your_jwks_url_here
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_...
+CLERK_SECRET_KEY=sk_...
+CLERK_JWKS_URL=https://...
+OPENAI_API_KEY=sk-proj-...
+DEFAULT_AWS_REGION=us-east-1
+AWS_ACCOUNT_ID=123456789012
 ```
 
-Add `.env` to your `.gitignore`.
+### Mac / Linux
 
-### Step 4: Backend JWT Verification (JWKS)
-
-In the Clerk dashboard:
-
-* Configure → API Keys → Copy the **JWKS URL**
-* Add it to `.env` as shown above
-
-This allows your FastAPI backend (`server.py`) to validate Clerk-issued JWTs securely and cryptographically.
-
-## 💳 Subscription Setup
-
-### Step 5: Enable Clerk Billing
-
-Navigate to:
-
-* Dashboard → Configure → **Subscription Plans**
-
-Enable Billing.
-
-### Step 6: Create the Premium Subscription Plan
-
-Use the exact plan key:
-
-```
-premium_subscription
+```bash
+export $(cat .env | grep -v '^#' | xargs)
 ```
 
-Configure pricing (monthly or annual).
-Save the plan.
+### Windows PowerShell
 
-### Step 7: (Optional) Connect Stripe
-
-If using real payments:
-
-* Billing → Settings → Switch to Stripe
-
-Otherwise, Clerk's built-in billing system works in test mode.
-
-### Step 8: Test Subscription Flow
-
-1. Sign in
-2. Go to `/product`
-3. If unsubscribed → user sees `<PricingTable />`
-4. Subscribe
-5. Premium-gated pages unlock instantly
-
-### Step 9: Manage Subscriptions
-
-Users manage subscriptions through:
-
-```
-<UserButton />
+```powershell
+Get-Content .env | ForEach-Object {
+    if ($_ -match '^(.+?)=(.+)$') {
+        [System.Environment]::SetEnvironmentVariable($matches[1], $matches[2])
+    }
+}
 ```
 
-This exposes Clerk’s built-in billing and account-management interface.
+## 🧱 Step 4 – Build the Docker Image
 
-## 🧠 How Everything Works Together
+### Mac / Linux
 
-### Frontend
-
-* Clerk provides login, signup, and session management
-* The UI retrieves a JWT via `getToken()`
-* Premium pages are protected using:
-
-```tsx
-<Protect plan="premium_subscription">
+```bash
+docker build \
+  --build-arg NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY="$NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY" \
+  -t consultation-app .
 ```
 
-### Backend
+### Windows PowerShell
 
-* FastAPI (`api/server.py`) validates JWTs using the JWKS URL
-* The clinical endpoint `/api/consultation` enforces authenticated access
+```powershell
+docker build `
+  --build-arg NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY="$env:NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY" `
+  -t consultation-app .
+```
 
-### Billing
+## 🏃 Step 5 – Run the Container Locally
 
-* Clerk handles subscription state
-* Stripe (optional) handles real payment processing
-* Subscription status is always synced — no backend logic needed
+### Option A – Env vars manually
 
-## 🛠️ Troubleshooting
+```powershell
+docker run -p 8000:8000 `
+  -e CLERK_SECRET_KEY="$env:CLERK_SECRET_KEY" `
+  -e CLERK_JWKS_URL="$env:CLERK_JWKS_URL" `
+  -e OPENAI_API_KEY="$env:OPENAI_API_KEY" `
+  consultation-app
+```
 
-**“Plan not found”**
+### Option B – Use `.env` file
 
-* Ensure the plan key is **exactly** `premium_subscription`
-* Verify Billing is enabled in Clerk
+```powershell
+docker run -p 8000:8000 --env-file .env consultation-app
+```
 
-**Pricing table still showing after subscribing**
+## 🧪 Step 6 – Test the Application
 
-* Sign out and back in
-* Check subscription status in Clerk dashboard
+1. Open:
+   `http://localhost:8000`
+2. Sign in via Clerk
+3. Submit a consultation
+4. Confirm:
 
-**403 errors from backend**
+   * Markdown renders correctly
+   * Sections appear cleanly
+   * Streaming works smoothly
 
-* Confirm `CLERK_JWKS_URL` in `.env`
-* Verify the frontend sends the `Authorization: Bearer <token>` header
+Stop the container with **Ctrl + C**.
 
-## 🧪 Completion Checklist
+## ✅ Completion Checklist
 
-| Component                       | Description                                     | Status |
-| ------------------------------- | ----------------------------------------------- | :----: |
-| Authentication Enabled          | Clerk login, JWTs, and env vars configured      |    ✅   |
-| Backend JWT Verification Active | FastAPI verifies Clerk tokens via JWKS          |    ✅   |
-| Billing Enabled                 | Subscription plans active in Clerk              |    ✅   |
-| Premium Plan Created            | `premium_subscription` created and active       |    ✅   |
-| Product Page Protected          | `<Protect plan="premium_subscription">` applied |    ✅   |
-| PricingTable Fallback Working   | Non-subscribed users see correct upgrade prompt |    ✅   |
-| Subscription Upgrade Flow Works | Users can subscribe and gain access instantly   |    ✅   |
-| User Subscription Management    | Via `<UserButton />`                            |    ✅   |
+| Component              | Description                                 | Status |
+| ---------------------- | ------------------------------------------- | :----: |
+| Dockerfile Created     | Multi-stage Node + Python image             |    ✅   |
+| `.dockerignore` Added  | Unnecessary files excluded                  |    ✅   |
+| Env Vars Loaded        | Clerk, OpenAI, AWS vars available to Docker |    ✅   |
+| Image Built            | `consultation-app` built successfully       |    ✅   |
+| Container Running      | Available at `localhost:8000`               |    ✅   |
+| End-to-End Flow Tested | Consultation workflow verified in Docker    |    ✅   |
+
+If you'd like, we can move on to the **ECR setup branch** next.
