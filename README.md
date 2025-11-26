@@ -1,132 +1,188 @@
-# 🚀 LLMOps – Healthcare App
+# 🏥 **LLMOps Healthcare App — Main Project Overview**
 
-### 🌐 Deploy to AWS App Runner Branch
+The **LLMOps Healthcare App** is a full end-to-end AI application that allows clinicians to enter raw consultation notes and instantly receive:
 
-This branch deploys the fully containerised **Healthcare Consultation App** into **AWS App Runner**, giving you a fully managed, auto-scaling, HTTPS-enabled production environment.
+* A structured **clinical summary**
+* **Next-step clinical recommendations**
+* A **patient-friendly email draft**
+* All generated in real time via **OpenAI GPT-5-Nano**
 
-Once this stage is complete, you will have:
+The system combines:
 
-* An App Runner service pulling your Docker image from ECR
-* Environment variables securely stored in App Runner
-* Health checks and auto-scaling configured
-* A live HTTPS endpoint running your healthcare app
-* A simple workflow for redeploying updates by pushing new images to ECR
+* ⚛️ **Next.js (Pages Router)** frontend
+* 🐍 **FastAPI backend** served inside Docker
+* 🔐 **Clerk authentication** (sign-in + JWT verification)
+* 📡 **Server-Sent Events (SSE)** for live token streaming
+* 🧰 **Docker packaging**
+* ☁️ **AWS ECR** for container storage
+* 🚀 **AWS App Runner** for production deployment
 
-This is the final step that takes your application from local development to production deployment.
+It is a complete production-grade LLMOps pipeline deployed on AWS.
 
-## 🧱 Step 1 – Launch App Runner
+## 🎥 **Application Walkthrough**
 
-1. Open AWS Console → search for **App Runner**
-2. Click **Create service**
-
-## ⚙️ Step 2 – Configure Source
-
-1. **Source**
-
-   * Repository type: **Container registry**
-   * Provider: **Amazon ECR**
-2. Click **Browse**
-3. Select your repository:
-
-   * `consultation-app`
-   * Tag: `latest`
-4. **Deployment settings**
-
-   * Deployment trigger: **Manual**
-   * ECR access role: **Create new service role**
-5. Click **Next**
-
-## 🛠️ Step 3 – Configure Service
-
-1. **Service name**
-   `consultation-app-service`
-2. **Compute settings**
-
-   * vCPU: `0.25 vCPU`
-   * Memory: `0.5 GB`
-3. **Environment variables**
-   Add the following:
-
-   * `CLERK_SECRET_KEY`
-   * `CLERK_JWKS_URL`
-   * `OPENAI_API_KEY`
-4. **Port**
-   `8000`
-5. **Auto scaling**
-
-   * Minimum size: `1`
-   * Maximum size: `1`
-6. Click **Next**
-
-## ❤️ Step 4 – Configure Health Check
-
-1. Protocol: **HTTP**
-2. Path: `/health`
-3. Interval: `20` seconds
-4. Timeout: `5` seconds
-5. Healthy threshold: `2`
-6. Unhealthy threshold: `5`
-7. Click **Next**
-
-## 🚀 Step 5 – Review & Deploy
-
-1. Review your configuration
-2. Click **Create & deploy**
-3. Wait **5–10 minutes** until the service status becomes **Running**
-
-## 🌍 Step 6 – Access Your Live Application
-
-1. Click the automatically assigned **Default domain**
-2. Your live application loads over HTTPS
+### 🔑 1. User Sign-Up Flow
 
 <div align="center">
-  <img src="img/aws_app_runner/endpoint.png" width="100%" alt="AWS App Runner Endpoint Example">
+  <img src="img/app/sign_up.gif" width="100%" alt="User Sign Up Demo">
 </div>
 
-3. Test the full workflow:
+### 💳 2. Subscription Selection & Checkout
 
-   * Clerk authentication
-   * Consultation summary
-   * Streaming output
-   * Sign out
+<div align="center">
+  <img src="img/app/subscription.gif" width="100%" alt="Subscription Demo">
+</div>
 
-Your healthcare app is now live on AWS App Runner.
+### 📝 3. Real-Time Consultation Summary Generation
 
-# 🔄 Updating & Redeploying the Application
+<div align="center">
+  <img src="img/app/notes_generation.gif" width="100%" alt="Notes Generation Demo">
+</div>
 
-To push updates to AWS, simply rebuild your image, push to ECR, and trigger a new deployment.
+## 🧩 **Grouped Stages**
 
-## 🔧 Step 1 – Rebuild & Push Image
+Your project had **12 branches**, but several naturally belong together.
+Below is a clean, intuitive grouping in a 3-column table:
 
-### Mac / Linux
+| Stage Group | Category                      | Description                                                                                       |
+| :---------: | ----------------------------- | ------------------------------------------------------------------------------------------------- |
+|    **00**   | Project Setup                 | Initial Next.js scaffold, project structure, global config, repo setup                            |
+|    **01**   | AWS Account Setup             | Created AWS account, budgets, IAM user, permissions, regions, keys                                |
+|    **02**   | Docker Environment Setup      | Installed Docker Desktop, verified CLI, created base config                                       |
+|  **03–06**  | Core Application Development  | Backend API (FastAPI), app configuration, consultation form, landing page, Next.js config updates |
+|  **07–08**  | Authentication & Subscription | Full Clerk setup, JWT verification, premium subscription plan, frontend protection                |
+|    **09**   | Local Docker Testing          | Built multi-stage Dockerfile, ran full container locally, validated SSE + markdown rendering      |
+|    **10**   | Deploy to AWS ECR             | Built linux/amd64 image, authenticated via AWS CLI, tagged + pushed container to ECR              |
+|    **11**   | Deploy to AWS App Runner      | Created App Runner service, environment variables, health checks, hardened deployment             |
+
+## 🗂️ **Project Structure**
+
+```
+LLMOps-Healthcare-App__AWS-App-Runner/
+├── api/
+│   ├── README.md
+│   └── server.py
+├── img/
+│   └── app/
+│       ├── sign_up.gif
+│       ├── subscription.gif
+│       └── notes_generation.gif
+├── node_modules/
+├── pages/
+│   ├── _app.tsx
+│   ├── _document.tsx
+│   ├── index.tsx
+│   ├── product.tsx
+│   └── README.md
+├── public/
+├── styles/
+│   └── globals.css
+├── .dockerignore
+├── .env
+├── .gitignore
+├── Dockerfile
+├── eslint.config.mjs
+├── next-env.d.ts
+├── next.config.ts
+├── package-lock.json
+├── package.json
+├── postcss.config.mjs
+├── README.md
+├── requirements.txt
+└── tsconfig.json
+```
+
+## 🧠 **Key Architectural Components**
+
+### 🔐 Clerk Authentication
+
+* Secure sign-in
+* JWT verification in FastAPI via `CLERK_JWKS_URL`
+* Premium plan gating
+* No sensitive keys inside the Docker image
+
+### 🐍 FastAPI Backend
+
+* Implemented in `api/server.py`
+* SSE streaming with `StreamingResponse`
+* Serves static Next.js export (`/app/static`)
+* Health check at `/health` for App Runner
+
+### ⚛️ Next.js Frontend
+
+* Pages Router (simpler for API integrations)
+* Tailwind styling
+* ReactMarkdown + remark-gfm + remark-breaks for formatted LLM output
+* fetch-event-source for streamed completions
+
+### 🐳 Dockerised Deployment
+
+* Multi-stage build:
+
+  * Node builder → Next.js static export
+  * Python server image → serves API + static files
+* Cross-architecture flag for Apple Silicon (`--platform linux/amd64`)
+
+### ☁️ AWS ECR → AWS App Runner
+
+* Container stored in ECR
+* App Runner handles:
+
+  * HTTPS automatically
+  * Scaling
+  * Load balancing
+  * Instance provisioning
+* Only environment variables injected at runtime:
+
+  * `CLERK_SECRET_KEY`
+  * `CLERK_JWKS_URL`
+  * `OPENAI_API_KEY`
+
+## 💻 **Local Development**
+
+Install dependencies:
 
 ```bash
-docker build \
-  --platform linux/amd64 \
-  --build-arg NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY="$NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY" \
-  -t consultation-app .
-
-docker tag consultation-app:latest $AWS_ACCOUNT_ID.dkr.ecr.$DEFAULT_AWS_REGION.amazonaws.com/consultation-app:latest
-
-docker push $AWS_ACCOUNT_ID.dkr.ecr.$DEFAULT_AWS_REGION.amazonaws.com/consultation-app:latest
+npm install
+pip install -r requirements.txt
 ```
 
-### Windows PowerShell
+Run Next.js locally:
 
-```powershell
-docker build `
-  --platform linux/amd64 `
-  --build-arg NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY="$env:NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY" `
-  -t consultation-app .
-
-docker tag consultation-app:latest "$env:AWS_ACCOUNT_ID.dkr.ecr.$env:DEFAULT_AWS_REGION.amazonaws.com/consultation-app:latest"
-
-docker push "$env:AWS_ACCOUNT_ID.dkr.ecr.$env:DEFAULT_AWS_REGION.amazonaws.com/consultation-app:latest"
+```bash
+npm run dev
 ```
 
-## 🚢 Step 2 – Redeploy in App Runner
+Run FastAPI locally:
 
-1. Open **AWS App Runner**
-2. Select `consultation-app-service`
-3. Click **Deploy**
-4. Wait for the update to complete
+```bash
+uvicorn api.server:app --reload
+```
+
+## 🧪 **Local Docker Test**
+
+```bash
+docker build -t consultation-app .
+docker run -p 8000:8000 --env-file .env consultation-app
+```
+
+Navigate to:
+
+```
+http://localhost:8000
+```
+
+## 🚀 **Deploying to AWS**
+
+1. Build linux/amd64 image
+2. Authenticate Docker to ECR
+3. Push `latest` tag
+4. Create App Runner service
+5. Configure environment variables
+6. Deploy and test
+
+Your app becomes publicly accessible via HTTPS with auto-scaling handled by AWS.
+
+## 🎉 **Project Complete**
+
+You have successfully built, containerised, tested, and deployed a full **LLMOps Healthcare Application** on **AWS App Runner**, complete with authentication, subscriptions, real-time LLM streaming, and a polished UI.
